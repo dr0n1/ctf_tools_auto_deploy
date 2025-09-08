@@ -6,27 +6,26 @@
 # 目前支持的功能
 
 1：基础功能（换网络源，允许 root ssh 登录等）  
-2：安装 docker  
-3：安装 docker-compose  
-4：安装 golang  
-5：安装 java  
-6：安装 linux 下的部分 pwn 工具  
-7：安装 linux 下的部分 misc 工具和第三方脚本  
-8：安装 linux 下的部分 web 工具
+2：安装 docker / docker-compose  
+3：安装 golang  
+4：安装 java  
+5：安装 linux 下的部分 pwn 工具  
+6：安装 linux 下的部分 misc 工具和第三方脚本  
+7：安装 linux 下的部分 web 工具和第三方脚本
 
-具体如下
+具体如下，标注**docker**的以容器的形式部署，标注**file**的以文件的形式保存在目录中，其他默认以**命令**的形式安装
 
 ```text
 misc:
 binwalk
-bkcrack
-blindwatermark
-cloacked-pixel
+bkcrack(file)
+blindwatermark(file)
+cloacked-pixel(file)
 dtmf2num
-dwarf2json
+dwarf2json(file)
 exif
 extundelete
-f5-steganography
+f5-steganography(file)
 foremost
 gaps
 gnuplot
@@ -34,16 +33,16 @@ identify
 minimodem
 montage
 outguess
-pycdc
+pycdc(file)
 sstv
 steghide
 stegosaurus
 stegpy
 stegseek
-usb-mouse-pcap-visualizer
-usbkeyboarddatahacker
-volatility2
-volatility3
+usb-mouse-pcap-visualizer(file)
+usbkeyboarddatahacker(file)
+volatility2(file)
+volatility3(file)
 webp
 wireshark
 zsteg
@@ -60,18 +59,21 @@ qemu
 web:
 reverse-shell-generator(docker)
 gtfobins(docker)
-neo-regorg(tunnel)
-stowaway(tunnel)
-frp(tunnel)
-iox(tunnel)
-chisel(tunnel)
+neo-regorg(file)
+stowaway(file)
+frp(file)
+iox(file)
+chisel(file)
+PHP_INCLUDE_TO_SHELL_CHAR_DICT(file)
+cnext-exploits(file)
+php_filter_chains_oracle_exploit(file)
 ```
 
 # 支持的系统
 
 已在 ubuntu 20.04.6/22.04.5/24.04.2 中完成测试
 
-部分功能需要配合代理使用
+**部分**功能需要配合代理使用
 
 # 使用
 
@@ -102,20 +104,6 @@ bash <(curl -s https://raw.githubusercontent.com/dr0n1/CTF_misc_auto_deploy/main
 
 ![](./auto_deploy.gif)
 
-# 更新日志
-
-V1.0: 第一代脚本  
-V1.1: 增加 python 安装模块  
-V1.2: 优化安装逻辑等  
-V1.3: 移除 python，新增 golang 和 java  
-V2.1: 增加 CTF-Misc 部分工具的安装  
-V2.2: 优化可重复运行脚本逻辑  
-V2.3: 优化部分 python 模块安装逻辑  
-V2.4: 增加部分 misc 工具，格式化代码  
-V3.1: 移除了 centos 的工具支持，增加 golang 多版本支持等  
-V3.2: 修复了诺干 bug，增加了 java 版本管理  
-V4.1: 添加 pwntools 等工具  
-V4.2: 添加了部分 web 工具
 
 ---
 

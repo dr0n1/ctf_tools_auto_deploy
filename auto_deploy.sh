@@ -1,6 +1,5 @@
 #!/bin/bash
 # Author: dr0n1
-# Version：4.2 beta
 # Email: 1930774374@qq.com
 
 ubuntu_version=$(lsb_release -rs | cut -d. -f1)
@@ -1131,6 +1130,7 @@ function install_misc_gaps() {
 	else
 		rm -rf $misc_tools_dir/gaps
 		info "开始安装 gaps..."
+		apt remove -y python3-matplotlib
 		git clone https://github.com/nemanja-m/gaps $misc_tools_dir/gaps
 
 		if ! python3 -c "import poetry" &>/dev/null; then
@@ -1762,6 +1762,70 @@ function install_web_chisel() {
 	chmod +x "$target_dir/current/chisel"
 
 	info "chisel 安装完成，已解压到 $target_dir/current"
+}
+
+function install_web_cnext-exploits() {
+	if [ -d "$web_tools_dir/cnext-exploits" ] && [ -f "$web_tools_dir/cnext-exploits/cnext-exploit.py" ]; then
+		info "cnext-exploits 已经下载"
+		return
+	fi
+
+	info "开始下载 cnext-exploits..."
+	if git clone --recurse-submodules https://github.com/ambionics/cnext-exploits "$web_tools_dir/cnext-exploits"; then
+		info "cnext-exploits 下载完成"
+
+		if ! python3 -c "from ten import ten" &>/dev/null; then
+			pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple ten $PIP_BREAK_ARG
+		fi
+
+		if ! python3 -c "import pwn" &>/dev/null; then
+			pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple pwntools $PIP_BREAK_ARG
+		fi
+
+		if [ -d "$web_tools_dir/cnext-exploits" ] && [ -f "$web_tools_dir/cnext-exploits/cnext-exploit.py" ]; then
+			info "cnext-exploits 及其依赖安装完成"
+		else
+			error "cnext-exploits 下载完成，但关键文件未找到，可能仓库结构已变更"
+		fi
+	else
+		error "cnext-exploits 下载失败"
+	fi
+}
+
+function install_web_php_filter_chains_oracle_exploit() {
+	if [ -d "$web_tools_dir/php-filter-chains-oracle-exploit" ] && [ -f "$web_tools_dir/php-filter-chains-oracle-exploit/filters_chain_oracle_exploit.py" ]; then
+		info "php-filter-chains-oracle-exploit 已经下载"
+		return
+	fi
+
+	info "开始下载 php-filter-chains-oracle-exploit..."
+	if git clone https://github.com/synacktiv/php_filter_chains_oracle_exploit "$web_tools_dir/php-filter-chains-oracle-exploit"; then
+		if [ -d "$web_tools_dir/php-filter-chains-oracle-exploit" ] && [ -f "$web_tools_dir/php-filter-chains-oracle-exploit/filters_chain_oracle_exploit.py" ]; then
+			info "php-filter-chains-oracle-exploit 下载完成"
+		else
+			error "php-filter-chains-oracle-exploit 下载完成，但关键文件未找到，可能仓库结构已变更"
+		fi
+	else
+		error "php-filter-chains-oracle-exploit 下载失败，请检查网络连接或GitHub访问"
+	fi
+}
+
+function install_web_PHP_INCLUDE_TO_SHELL_CHAR_DICT() {
+	if [ -d "$web_tools_dir/PHP_INCLUDE_TO_SHELL_CHAR_DICT" ] && [ -f "$web_tools_dir/PHP_INCLUDE_TO_SHELL_CHAR_DICT/test.py" ]; then
+		info "PHP_INCLUDE_TO_SHELL_CHAR_DICT 已经下载"
+		return
+	fi
+
+	info "开始下载 PHP_INCLUDE_TO_SHELL_CHAR_DICT..."
+	if git clone https://github.com/wupco/PHP_INCLUDE_TO_SHELL_CHAR_DICT "$web_tools_dir/PHP_INCLUDE_TO_SHELL_CHAR_DICT"; then
+		if [ -d "$web_tools_dir/PHP_INCLUDE_TO_SHELL_CHAR_DICT" ] && [ -f "$web_tools_dir/PHP_INCLUDE_TO_SHELL_CHAR_DICT/test.py" ]; then
+			info "PHP_INCLUDE_TO_SHELL_CHAR_DICT 下载完成"
+		else
+			error "PHP_INCLUDE_TO_SHELL_CHAR_DICT 下载完成，但关键文件未找到，可能仓库结构已变更"
+		fi
+	else
+		error "PHP_INCLUDE_TO_SHELL_CHAR_DICT 下载失败，请检查网络连接或GitHub访问"
+	fi
 }
 
 function usage() {
