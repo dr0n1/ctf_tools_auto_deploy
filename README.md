@@ -1,4 +1,4 @@
-# CTF_misc_auto_deploy
+# CTF_Tools_Auto_Deploy
 
 一个自动安装 CTF Misc/Pwn/Web 常用工具的~~轻量~~sh 脚本  
 适合在新虚拟机中快速安装工具
