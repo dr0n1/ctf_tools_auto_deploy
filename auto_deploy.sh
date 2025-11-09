@@ -1243,6 +1243,24 @@ function install_misc_stegpy() {
 	fi
 }
 
+function install_misc_blind_watermark() {
+	if pip3 list | grep "blind-watermark" &>/dev/null; then
+		info "blind-watermark 已经安装"
+		return
+	fi
+
+	info "开始安装 blind-watermark..."
+	if pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple blind-watermark $PIP_BREAK_ARG; then
+		if pip3 list | grep "blind-watermark" &>/dev/null; then
+			info "blind-watermark 安装完成"
+		else
+			error "blind-watermark 安装过程未报错，但模块未找到，可能安装失败"
+		fi
+	else
+		error "blind-watermark 安装失败，请检查网络或pip源配置"
+	fi
+}
+
 function install_web_reverse-shell-generator() {
 	if ! command -v docker &>/dev/null; then
 		info "Docker 未安装，开始安装..."

@@ -20,6 +20,7 @@ misc:
 binwalk
 bkcrack(file)
 blindwatermark(file)
+blind-watermark
 cloacked-pixel(file)
 dtmf2num
 dwarf2json(file)
