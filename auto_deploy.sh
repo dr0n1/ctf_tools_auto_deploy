@@ -196,7 +196,7 @@ function install_go() {
 	fi
 
 	read -p "请输入要安装的 Go 版本 (默认为 ${default_go_version}，格式如 1.20.4): " input_version
-	if [[ $input_go_version =~ ^[0-9]+\.[0-9]+(\.[0-9]+)*$ ]]; then
+	if [[ $input_version =~ ^[0-9]+\.[0-9]+(\.[0-9]+)*$ ]]; then
 		go_version="$input_version"
 	else
 		go_version="$default_go_version"
