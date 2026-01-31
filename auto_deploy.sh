@@ -2029,20 +2029,25 @@ function install_web_php_filter_chain_generator() {
 }
 
 function install_web_Gopherus() {
-	if [ -d "$web_tools_dir/Gopherus" ] && [ -f "$web_tools_dir/Gopherus/gopherus.py" ]; then
+	if command -v gopherus &>/dev/null; then
 		info "Gopherus 已经下载"
 		return
 	fi
 
-	info "开始下载 Gopherus..."
+	info "开始安装 Gopherus..."
 	if git clone https://github.com/tarunkant/Gopherus "$web_tools_dir/Gopherus"; then
-		if [ -d "$web_tools_dir/Gopherus" ] && [ -f "$web_tools_dir/Gopherus/gopherus.py" ]; then
-			info "Gopherus 下载完成"
+		if [ -d "$web_tools_dir/Gopherus" ] && [ -f "$web_tools_dir/Gopherus/install.sh" ]; then
+
+			pushd "$web_tools_dir/Gopherus" >/dev/null
+			sudo ./install.sh
+			popd >/dev/null
+
+			info "Gopherus 安装完成"
 		else
-			error "Gopherus 下载完成，但关键文件未找到，可能仓库结构已变更"
+			error "Gopherus 安装完成，但关键文件未找到，可能仓库结构已变更"
 		fi
 	else
-		error "Gopherus 下载失败，请检查网络连接或GitHub访问"
+		error "Gopherus 安装失败，请检查网络连接或GitHub访问"
 	fi
 }
 
