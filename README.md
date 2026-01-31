@@ -47,6 +47,8 @@ volatility3(file)
 webp
 wireshark
 zsteg
+crc32(file)
+CyberChef(docker)
 
 pwn:
 pwntools
@@ -68,6 +70,10 @@ chisel(file)
 PHP_INCLUDE_TO_SHELL_CHAR_DICT(file)
 cnext-exploits(file)
 php_filter_chains_oracle_exploit(file)
+php_filter_chain_generator(file)
+Gopherus(file)
+c-jwt-cracker(docker)
+rsa_sign2n(file)
 ```
 
 # 支持的系统

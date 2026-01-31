@@ -2,6 +2,7 @@
 # Author: dr0n1
 # Email: 1930774374@qq.com
 
+export DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-noninteractive}
 ubuntu_version=$(lsb_release -rs | cut -d. -f1)
 misc_tools_dir="misc_tools"
 pwn_tools_dir="pwn_tools"
@@ -10,6 +11,18 @@ COLOR_G="\x1b[0;32m"
 COLOR_R="\x1b[0;31m"
 COLOR_Y="\x1b[0;33m"
 RESET="\x1b[0m"
+APT_UPDATED=0
+
+apt_update_once() {
+	if [[ "${1:-}" == "--force" ]]; then
+		APT_UPDATED=0
+	fi
+
+	if [[ "${APT_UPDATED}" -eq 0 ]]; then
+		apt-get update -q
+		APT_UPDATED=1
+	fi
+}
 
 function info() {
 	printf "${COLOR_G}[$(date +'%Y%m%d %T')] [Info] %s${RESET}\n" "$1"
@@ -29,12 +42,13 @@ function install_basics() {
 
 		if ! command -v curl >/dev/null 2>&1; then
 			info "安装 curl..."
-			apt-get update -q
+			apt_update_once
 			apt-get install -y curl
 		fi
 
 		ubuntu_lsb=$(lsb_release -c -s)
 		src_url="https://mirrors.ustc.edu.cn/repogen/conf/ubuntu-https-4-${ubuntu_lsb}"
+		cp /etc/apt/sources.list /etc/apt/sources.list.backup
 
 		if curl -fsSL "$src_url" -o /etc/apt/sources.list; then
 			info "USTC 源配置成功"
@@ -47,7 +61,7 @@ function install_basics() {
 
 	info "更新软件包索引"
 	apt-get clean
-	apt-get update -q
+	apt_update_once --force
 	apt-get install -y wget net-tools openssl >/dev/null 2>&1
 	info "基础工具安装完成"
 
@@ -99,6 +113,12 @@ function install_docker() {
 	if command -v docker &>/dev/null; then
 		read -p "Docker已经安装，是否卸载并安装最新版本？ （可能发生某些意外） 默认为：no. Enter [yes/no]: " answer
 		if [[ $answer =~ ^([yY][eE][sS]|[yY])$ ]]; then
+			read -p "二次确认：这将删除 /var/lib/docker 和 /var/lib/containerd 中的镜像/容器数据。输入 yes 继续: " purge_confirm
+			if [[ ! $purge_confirm =~ ^([yY][eE][sS]|[yY])$ ]]; then
+				info "已取消重新安装 Docker"
+				return
+			fi
+
 			info "卸载旧版 Docker..."
 			apt-get remove -y docker docker-engine docker-ce docker.io containerd runc >/dev/null 2>&1
 			apt-get purge -y docker-ce docker-ce-cli containerd.io >/dev/null 2>&1
@@ -116,7 +136,7 @@ function install_docker() {
 
 	if [ "$ubuntu_version" -le 16 ]; then
 		info "Ubuntu $ubuntu_version 为旧版本，使用 Docker 官方源手动添加方式"
-		apt-get update -q
+		apt_update_once
 		apt-get install -y apt-transport-https ca-certificates curl software-properties-common
 
 		if ! apt-key list 2>/dev/null | grep -q "Docker Release"; then
@@ -127,7 +147,7 @@ function install_docker() {
 			add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $ubuntu_codename stable" >/dev/null 2>&1
 		fi
 
-		apt-get update -q
+		apt_update_once --force
 		apt-get install -y docker-ce
 	else
 		info "尝试使用 Daocloud 安装脚本"
@@ -243,7 +263,7 @@ function install_java() {
 		info "OpenJDK $installed_version 已经存在，无需重复安装"
 	else
 		info "安装 OpenJDK $installed_version..."
-		apt-get update -q
+		apt_update_once
 		if ! apt-get install -y openjdk-${installed_version}-jdk; then
 			error "Java 安装失败，请检查版本号或网络连接"
 			exit 1
@@ -470,8 +490,8 @@ function list_supported_tools {
 
 function install_misctool_base() {
 	info "安装系统依赖包"
-	apt-get update -q
-	apt-get install -y git gcc make cmake python3-dev libbz2-dev build-essential zlib1g-dev libssl-dev libreadline-dev libsqlite3-dev curl checkinstall libncursesw5-dev tk-dev libgdbm-dev libc6-dev libffi-dev proxychains4
+	apt_update_once
+	apt-get install -y git gcc make cmake unzip python3-dev libbz2-dev build-essential zlib1g-dev libssl-dev libreadline-dev libsqlite3-dev curl checkinstall libncursesw5-dev tk-dev libgdbm-dev libc6-dev libffi-dev proxychains4
 
 	if [[ $ubuntu_version -le 22 ]]; then
 		apt-get install -y python2-dev python-tk python3-distutils
@@ -529,6 +549,7 @@ function install_misctool_base() {
 		[enum]=enum
 		[setuptools]=setuptools
 		[requests]=requests
+		[gmpy2]=gmpy2
 	)
 
 	for pkg in "${!py2_modules_map[@]}"; do
@@ -577,6 +598,7 @@ function install_misctool_base() {
 		[tqdm]=tqdm
 		[soundfile]=soundfile
 		[pefile]=pefile
+		[asn1tools]=asn1tools
 	)
 
 	for pkg in "${!py3_modules_map[@]}"; do
@@ -1184,6 +1206,35 @@ function install_misc_dwarf2json() {
 	fi
 }
 
+function install_misc_crc32() {
+	if [ -d "$misc_tools_dir/crc32" ] && [ -f "$misc_tools_dir/crc32/crc32.py" ]; then
+		info "crc32 已经安装"
+		return
+	fi
+
+	info "开始安装 crc32..."
+	tmp_zip="$misc_tools_dir/crc32.zip"
+	if wget https://github.com/theonlypwner/crc32/archive/refs/tags/v0.1.zip -O "$tmp_zip"; then
+		if unzip -q "$tmp_zip" -d "$misc_tools_dir"; then
+			rm -f "$tmp_zip"
+			if [ -d "$misc_tools_dir/crc32-0.1" ]; then
+				mv "$misc_tools_dir/crc32-0.1" "$misc_tools_dir/crc32"
+			fi
+
+			if [ -d "$misc_tools_dir/crc32" ] && [ -f "$misc_tools_dir/crc32/crc32.py" ]; then
+				info "crc32 安装完成"
+			else
+				error "crc32 解压完成但未找到 crc32.py，可能压缩包结构已变更"
+			fi
+		else
+			rm -f "$tmp_zip"
+			error "crc32 解压失败"
+		fi
+	else
+		error "crc32 下载失败，请检查网络或链接"
+	fi
+}
+
 # wget
 function install_misc_bkcrack() {
 	if [ -f ./$misc_tools_dir/bkcrack-1.5.0-Linux/bkcrack ]; then
@@ -1261,6 +1312,89 @@ function install_misc_blind_watermark() {
 	fi
 }
 
+function install_misc_CyberChef() {
+	if ! command -v docker &>/dev/null; then
+		info "Docker 未安装，开始安装..."
+		install_docker
+	else
+		info "Docker 已安装"
+	fi
+
+	local choice run_image container_name port
+	container_name="cyberchef"
+	port=8003
+	run_image="cyberchef"
+
+	if docker image inspect "${run_image}" >/dev/null 2>&1; then
+		info "已有镜像 ${run_image}"
+	else
+		info "请选择 CyberChef 安装方式："
+		echo "1) 本地克隆github仓库并从文件构建镜像"
+		echo "2) 拉取官方预构建镜像 (ghcr.io/gchq/cyberchef:latest)"
+		read -p "[?] 请选择 (1/2，默认 2): " choice
+		choice=${choice:-2}
+		if [[ "$choice" == "1" ]]; then
+			if [ ! -d "$misc_tools_dir/CyberChef" ]; then
+				info "克隆 CyberChef 项目..."
+				git clone https://github.com/gchq/CyberChef "$misc_tools_dir/CyberChef"
+				if [ $? -ne 0 ]; then
+					error "克隆项目失败"
+					return 1
+				fi
+			fi
+
+			info "构建 Docker 镜像 ${run_image}..."
+			docker build --tag ${run_image} --ulimit nofile=10000 "$misc_tools_dir/CyberChef"
+			if [ $? -ne 0 ]; then
+				error "镜像构建失败"
+				return 1
+			fi
+		else
+			info "拉取预构建镜像 ghcr.io/gchq/cyberchef:latest..."
+			docker pull ghcr.io/gchq/cyberchef:latest
+			if [ $? -ne 0 ]; then
+				error "镜像拉取失败"
+				return 1
+			fi
+			info "标记预构建镜像为 ${run_image}..."
+			docker tag ghcr.io/gchq/cyberchef:latest "${run_image}"
+			if [ $? -ne 0 ]; then
+				error "镜像标记失败"
+				return 1
+			fi
+		fi
+	fi
+
+	if docker container inspect "${container_name}" >/dev/null 2>&1; then
+		port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "80/tcp") 0).HostPort }}' ${container_name} 2>/dev/null)
+
+		if [[ "$(docker container inspect -f '{{.State.Running}}' "${container_name}" 2>/dev/null)" == "true" ]]; then
+			info "容器 ${container_name} 已在运行，访问：http://$(hostname -I | awk '{print $1}'):${port}/"
+			return 0
+		else
+			info "容器 ${container_name} 存在但未运行，正在启动..."
+			docker start ${container_name} >/dev/null
+			info "容器已启动，访问：http://$(hostname -I | awk '{print $1}'):${port}/"
+			return 0
+		fi
+	fi
+
+	read -p "[?] 是否启动 CyberChef 容器?(y/n): " confirm
+	if [[ "$confirm" =~ ^[Yy]$ ]]; then
+		read -p "[?] 请输入映射到宿主机的端口（默认 8003）: " user_port
+		port=${user_port:-8003}
+		info "启动容器，映射端口 $port ..."
+		docker run -d -p "$port":80 --name ${container_name} --restart=unless-stopped ${run_image}
+		if [ $? -eq 0 ]; then
+			info "容器已启动，访问：http://$(hostname -I | awk '{print $1}'):$port/"
+		else
+			error "容器启动失败"
+		fi
+	else
+		warn "用户选择不启动容器"
+	fi
+}
+
 function install_web_reverse-shell-generator() {
 	if ! command -v docker &>/dev/null; then
 		info "Docker 未安装，开始安装..."
@@ -1269,7 +1403,7 @@ function install_web_reverse-shell-generator() {
 		info "Docker 已安装"
 	fi
 
-	if ! docker images --format "{{.Repository}}" | grep -q "^reverse_shell_generator$"; then
+	if ! docker image inspect "reverse_shell_generator" >/dev/null 2>&1; then
 		if [ ! -f "$web_tools_dir/reverse-shell-generator/Dockerfile" ]; then
 			info "克隆 reverse-shell-generator 项目..."
 			git clone https://github.com/0dayCTF/reverse-shell-generator.git $web_tools_dir/reverse-shell-generator
@@ -1278,10 +1412,8 @@ function install_web_reverse-shell-generator() {
 				return 1
 			fi
 
-			cat >"$web_tools_dir/reverse-shell-generator/Dockerfile" <<EOF
-FROM nginx:alpine
-COPY . /usr/share/nginx/html
-EOF
+			printf '%s\n' 'FROM nginx:alpine' 'COPY . /usr/share/nginx/html' "$web_tools_dir/reverse-shell-generator/Dockerfile"
+
 		fi
 
 		info "构建 Docker 镜像 reverse_shell_generator..."
@@ -1294,10 +1426,10 @@ EOF
 		info "镜像 reverse_shell_generator 已存在"
 	fi
 
-	if docker ps -a --format "{{.Names}}" | grep -q "^reverse_shell_generator$"; then
+	if docker container inspect "reverse_shell_generator" >/dev/null 2>&1; then
 		port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "80/tcp") 0).HostPort }}' reverse_shell_generator 2>/dev/null)
 
-		if docker ps --format "{{.Names}}" | grep -q "^reverse_shell_generator$"; then
+		if [[ "$(docker container inspect -f '{{.State.Running}}' "reverse_shell_generator" 2>/dev/null)" == "true" ]]; then
 			info "容器 reverse_shell_generator 已在运行，访问地址：http://$(hostname -I | awk '{print $1}'):${port}/"
 			return 0
 		else
@@ -1332,7 +1464,7 @@ function install_web_gtfobins() {
 		info "Docker 已安装"
 	fi
 
-	if ! docker images --format "{{.Repository}}" | grep -q "^gtfobins$"; then
+	if ! docker image inspect "gtfobins" >/dev/null 2>&1; then
 		if [ ! -f "$web_tools_dir/gtfobins/Dockerfile" ]; then
 			info "下载 GTFOBins Dockerfile..."
 			mkdir -p "$web_tools_dir/gtfobins"
@@ -1353,10 +1485,10 @@ function install_web_gtfobins() {
 		info "镜像 gtfobins 已存在"
 	fi
 
-	if docker ps -a --format "{{.Names}}" | grep -q "^gtfobins$"; then
+	if docker container inspect "gtfobins" >/dev/null 2>&1; then
 		port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "4000/tcp") 0).HostPort }}' gtfobins 2>/dev/null)
 
-		if docker ps --format "{{.Names}}" | grep -q "^gtfobins$"; then
+		if [[ "$(docker container inspect -f '{{.State.Running}}' "gtfobins" 2>/dev/null)" == "true" ]]; then
 			info "容器 gtfobins 已在运行，访问地址：http://$(hostname -I | awk '{print $1}'):${port}/"
 			return 0
 		else
@@ -1381,6 +1513,38 @@ function install_web_gtfobins() {
 	else
 		warn "用户选择不启动容器"
 	fi
+}
+
+function install_web_c-jwt-cracker() {
+	if ! command -v docker &>/dev/null; then
+		info "Docker 未安装，开始安装..."
+		install_docker
+	else
+		info "Docker 已安装"
+	fi
+
+	if ! docker image inspect "jwtcrack" >/dev/null 2>&1; then
+		if [ ! -f "$web_tools_dir/c-jwt-cracker/Dockerfile" ]; then
+			info "克隆 c-jwt-cracker 项目..."
+			mkdir -p "$web_tools_dir"
+			git clone https://github.com/brendan-rius/c-jwt-cracker "$web_tools_dir/c-jwt-cracker"
+			if [ $? -ne 0 ]; then
+				error "克隆项目失败"
+				return 1
+			fi
+		fi
+
+		info "构建 Docker 镜像 jwtcrack..."
+		docker build -t jwtcrack "$web_tools_dir/c-jwt-cracker"
+		if [ $? -ne 0 ]; then
+			error "镜像构建失败"
+			return 1
+		fi
+	else
+		info "镜像 jwtcrack 已存在"
+	fi
+
+	info "构建完成，可直接运行：docker run -it --rm jwtcrack <JWT>"
 }
 
 function install_web_neo-regorg() {
@@ -1811,20 +1975,20 @@ function install_web_cnext-exploits() {
 }
 
 function install_web_php_filter_chains_oracle_exploit() {
-	if [ -d "$web_tools_dir/php-filter-chains-oracle-exploit" ] && [ -f "$web_tools_dir/php-filter-chains-oracle-exploit/filters_chain_oracle_exploit.py" ]; then
-		info "php-filter-chains-oracle-exploit 已经下载"
+	if [ -d "$web_tools_dir/php_filter_chains_oracle_exploit" ] && [ -f "$web_tools_dir/php_filter_chains_oracle_exploit/filters_chain_oracle_exploit.py" ]; then
+		info "php_filter_chains_oracle_exploit 已经下载"
 		return
 	fi
 
-	info "开始下载 php-filter-chains-oracle-exploit..."
-	if git clone https://github.com/synacktiv/php_filter_chains_oracle_exploit "$web_tools_dir/php-filter-chains-oracle-exploit"; then
-		if [ -d "$web_tools_dir/php-filter-chains-oracle-exploit" ] && [ -f "$web_tools_dir/php-filter-chains-oracle-exploit/filters_chain_oracle_exploit.py" ]; then
-			info "php-filter-chains-oracle-exploit 下载完成"
+	info "开始下载 php_filter_chains_oracle_exploit..."
+	if git clone https://github.com/synacktiv/php_filter_chains_oracle_exploit "$web_tools_dir/php_filter_chains_oracle_exploit"; then
+		if [ -d "$web_tools_dir/php_filter_chains_oracle_exploit" ] && [ -f "$web_tools_dir/php_filter_chains_oracle_exploit/filters_chain_oracle_exploit.py" ]; then
+			info "php_filter_chains_oracle_exploit 下载完成"
 		else
-			error "php-filter-chains-oracle-exploit 下载完成，但关键文件未找到，可能仓库结构已变更"
+			error "php_filter_chains_oracle_exploit 下载完成，但关键文件未找到，可能仓库结构已变更"
 		fi
 	else
-		error "php-filter-chains-oracle-exploit 下载失败，请检查网络连接或GitHub访问"
+		error "php_filter_chains_oracle_exploit 下载失败，请检查网络连接或GitHub访问"
 	fi
 }
 
@@ -1843,6 +2007,60 @@ function install_web_PHP_INCLUDE_TO_SHELL_CHAR_DICT() {
 		fi
 	else
 		error "PHP_INCLUDE_TO_SHELL_CHAR_DICT 下载失败，请检查网络连接或GitHub访问"
+	fi
+}
+
+function install_web_php_filter_chain_generator() {
+	if [ -d "$web_tools_dir/php_filter_chain_generator" ] && [ -f "$web_tools_dir/php_filter_chain_generator/php_filter_chain_generator.py" ]; then
+		info "php_filter_chain_generator 已经下载"
+		return
+	fi
+
+	info "开始下载 php_filter_chain_generator..."
+	if git clone https://github.com/synacktiv/php_filter_chain_generator "$web_tools_dir/php_filter_chain_generator"; then
+		if [ -d "$web_tools_dir/php_filter_chain_generator" ] && [ -f "$web_tools_dir/php_filter_chain_generator/php_filter_chain_generator.py" ]; then
+			info "php_filter_chain_generator 下载完成"
+		else
+			error "php_filter_chain_generator 下载完成，但关键文件未找到，可能仓库结构已变更"
+		fi
+	else
+		error "php_filter_chain_generator 下载失败，请检查网络连接或GitHub访问"
+	fi
+}
+
+function install_web_Gopherus() {
+	if [ -d "$web_tools_dir/Gopherus" ] && [ -f "$web_tools_dir/Gopherus/gopherus.py" ]; then
+		info "Gopherus 已经下载"
+		return
+	fi
+
+	info "开始下载 Gopherus..."
+	if git clone https://github.com/tarunkant/Gopherus "$web_tools_dir/Gopherus"; then
+		if [ -d "$web_tools_dir/Gopherus" ] && [ -f "$web_tools_dir/Gopherus/gopherus.py" ]; then
+			info "Gopherus 下载完成"
+		else
+			error "Gopherus 下载完成，但关键文件未找到，可能仓库结构已变更"
+		fi
+	else
+		error "Gopherus 下载失败，请检查网络连接或GitHub访问"
+	fi
+}
+
+function install_web_rsa_sign2n() {
+	if [ -d "$web_tools_dir/rsa_sign2n" ] && [ -f "$web_tools_dir/rsa_sign2n/sig2n.py" ]; then
+		info "rsa_sign2n 已经下载"
+		return
+	fi
+
+	info "开始下载 rsa_sign2n..."
+	if git clone https://github.com/silentsignal/rsa_sign2n "$web_tools_dir/rsa_sign2n"; then
+		if [ -d "$web_tools_dir/rsa_sign2n" ] && [ -f "$web_tools_dir/rsa_sign2n/sig2n.py" ]; then
+			info "rsa_sign2n 下载完成"
+		else
+			error "rsa_sign2n 下载完成，但关键文件未找到，可能仓库结构已变更"
+		fi
+	else
+		error "rsa_sign2n 下载失败，请检查网络连接或GitHub访问"
 	fi
 }
 
