@@ -1235,6 +1235,28 @@ function install_misc_crc32() {
 	fi
 }
 
+function install_misc_md5collgen(){
+	if [ -d "$misc_tools_dir/md5collgen" ] && [ -f "$misc_tools_dir/md5collgen/md5collgen" ]; then
+		info "md5collgen 已经安装"
+		return
+	fi
+
+	info "开始安装 md5collgen..."
+	if git clone https://github.com/zhijieshi/md5collgen $misc_tools_dir/md5collgen; then
+		pushd "$misc_tools_dir/md5collgen" >/dev/null
+		make
+		popd >/dev/null
+
+		if [ -d "$misc_tools_dir/md5collgen" ] && [ -f "$misc_tools_dir/md5collgen/md5collgen" ]; then
+			info "md5collgen 安装完成"
+		else
+			error "md5collgen 编译完成，但可执行文件未找到，可能编译失败"
+		fi
+	else
+		error "md5collgen 安装失败，请检查网络连接或GitHub访问"
+	fi
+}
+
 # wget
 function install_misc_bkcrack() {
 	if [ -f ./$misc_tools_dir/bkcrack-1.5.0-Linux/bkcrack ]; then
