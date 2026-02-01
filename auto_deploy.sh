@@ -1433,10 +1433,9 @@ function install_web_reverse-shell-generator() {
 				error "克隆项目失败"
 				return 1
 			fi
-
-			printf '%s\n' 'FROM nginx:alpine' 'COPY . /usr/share/nginx/html' "$web_tools_dir/reverse-shell-generator/Dockerfile"
-
 		fi
+
+		printf '%s\n' 'FROM nginx:alpine' 'COPY . /usr/share/nginx/html' > "$web_tools_dir/reverse-shell-generator/Dockerfile"
 
 		info "构建 Docker 镜像 reverse_shell_generator..."
 		docker build -t reverse_shell_generator $web_tools_dir/reverse-shell-generator
