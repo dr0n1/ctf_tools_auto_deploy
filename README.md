@@ -113,6 +113,12 @@ bash <(curl -s https://raw.githubusercontent.com/dr0n1/CTF_misc_auto_deploy/main
 ![](./auto_deploy.gif)
 
 
+# link
+
+兄弟项目：https://github.com/dr0n1/RPT  
+windows下的网络安全工具箱
+
+
 ---
 
 本项目仅用作学习教育目的, 不用于任何其他用途, 如有侵权请第一时间联系作者删除
