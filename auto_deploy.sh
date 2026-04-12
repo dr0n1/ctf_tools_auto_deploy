@@ -334,7 +334,7 @@ function install_ctf_pwn_tools() {
 
 	if [ ! -f "$HOME/.gdbinit-gef.py" ]; then
 		info "正在安装 gef ..."
-		curl -s -L -o "$HOME/.gdbinit-gef.py" https://gef.blah.cat/gef.py
+		curl -s -L -o "$HOME/.gdbinit-gef.py" https://gef.blah.cat/py
 		if ! grep -q "gef.py" "$HOME/.gdbinit"; then
 			echo "source ~/.gdbinit-gef.py" >>"$HOME/.gdbinit"
 		fi
