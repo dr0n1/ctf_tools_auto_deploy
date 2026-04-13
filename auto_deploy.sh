@@ -283,11 +283,11 @@ function install_ctf_pwn_tools() {
 	info "开始安装 pwntools 及常用PWN工具"
 
 	install_misctool_base
-	if [[ $ubuntu_version -le 22 ]]; then
-		apt-get install -y libssl-dev libffi-dev build-essential gdb ruby ruby-full ruby-dev build-essential qemu qemu-user qemu-user-static
-	else
-		apt-get install -y libssl-dev libffi-dev build-essential gdb ruby ruby-full ruby-dev build-essential qemu-user qemu-user-static
-	fi
+
+	info "正在开启 32 位架构支持 ..."
+	dpkg --add-architecture i386
+	apt-get update
+	apt-get install -y libssl-dev libffi-dev build-essential gdb ruby ruby-full ruby-dev qemu-system qemu-user qemu-user-static qemu-utils libc6:i386 libncurses5:i386 libstdc++6:i386 gcc-multilib libc6-dev-i386
 
 	if ! python3 -c "import pwn" &>/dev/null; then
 		info "正在安装 pwntools ..."
@@ -1235,7 +1235,7 @@ function install_misc_crc32() {
 	fi
 }
 
-function install_misc_md5collgen(){
+function install_misc_md5collgen() {
 	if [ -d "$misc_tools_dir/md5collgen" ] && [ -f "$misc_tools_dir/md5collgen/md5collgen" ]; then
 		info "md5collgen 已经安装"
 		return
@@ -1435,7 +1435,7 @@ function install_web_reverse-shell-generator() {
 			fi
 		fi
 
-		printf '%s\n' 'FROM nginx:alpine' 'COPY . /usr/share/nginx/html' > "$web_tools_dir/reverse-shell-generator/Dockerfile"
+		printf '%s\n' 'FROM nginx:alpine' 'COPY . /usr/share/nginx/html' >"$web_tools_dir/reverse-shell-generator/Dockerfile"
 
 		info "构建 Docker 镜像 reverse_shell_generator..."
 		docker build -t reverse_shell_generator $web_tools_dir/reverse-shell-generator
