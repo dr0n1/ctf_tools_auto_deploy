@@ -298,7 +298,7 @@ function install_ctf_pwn_tools() {
 
 	if ! command -v ropper &>/dev/null; then
 		info "正在安装 ropper ..."
-		pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple ropper $PIP_BREAK_ARG
+		pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple ropper keystone-engine $PIP_BREAK_ARG
 	else
 		info "ropper 已安装"
 	fi
