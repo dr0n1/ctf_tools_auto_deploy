@@ -312,8 +312,7 @@ function install_ctf_pwn_tools() {
 
 		if [[ "$ruby_major" -lt 3 || ("$ruby_major" -eq 3 && "$ruby_minor" -lt 1) ]]; then
 			info "当前 Ruby 版本为 $ruby_ver，安装 one_gadget 兼容版本..."
-			gem install elftools -v 1.2.0
-			gem install one_gadget -v 1.7.2
+			gem install one_gadget -v 1.9.0
 		else
 			info "Ruby 版本满足要求，安装最新版 one_gadget"
 			gem install one_gadget
