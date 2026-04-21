@@ -50,7 +50,6 @@ zsteg
 crc32(file)
 CyberChef(docker)
 md5collgen
-hashcat
 
 pwn:
 pwntools

@@ -911,24 +911,6 @@ function install_misc_zsteg() {
 	fi
 }
 
-function install_misc_hashcat(){
-	if command -v hashcat &>/dev/null; then
-		info "hashcat 已经安装"
-		return
-	fi
-
-	info "开始安装 hashcat..."
-	if apt-get install -y hashcat; then
-		if command -v hashcat &>/dev/null; then
-			info "hashcat 安装完成"
-		else
-			error "hashcat 安装过程未报错，但命令未找到，可能路径未正确配置"
-		fi
-	else
-		error "hashcat 安装失败，请检查网络或软件源配置"
-	fi
-}
-
 # git clone
 function install_misc_cloacked-pixel() {
 	if [ -d "$misc_tools_dir/cloacked-pixel" ] && [ -f "$misc_tools_dir/cloacked-pixel/lsb.py" ]; then
