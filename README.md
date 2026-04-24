@@ -95,6 +95,7 @@ chmod +x auto_deploy.sh
 
 ```shell
 usage: ./auto_deploy.sh [mode]
+                self-update                     自动更新脚本到最新版本
                 base                            基础配置
                 docker                          安装docker
                 docker-compose                  安装docker-compose

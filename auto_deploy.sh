@@ -7,6 +7,7 @@ ubuntu_version=$(lsb_release -rs | cut -d. -f1)
 misc_tools_dir="misc_tools"
 pwn_tools_dir="pwn_tools"
 web_tools_dir="web_tools"
+SELF_UPDATE_URL="https://raw.githubusercontent.com/dr0n1/ctf_tools_auto_deploy/refs/heads/main/auto_deploy.sh"
 COLOR_G="\x1b[0;32m"
 COLOR_R="\x1b[0;31m"
 COLOR_Y="\x1b[0;33m"
@@ -34,6 +35,50 @@ function warn() {
 
 function error() {
 	printf "${COLOR_R}[$(date +'%Y%m%d %T')] [Error] %s${RESET}\n" "$1"
+}
+
+function update_self() {
+	local script_path tmp_file
+
+	script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+	tmp_file="$(mktemp)"
+	if [ $? -ne 0 ]; then
+		error "创建临时文件失败"
+		return 1
+	fi
+
+	info "从 ${SELF_UPDATE_URL} 下载最新脚本"
+	if command -v curl >/dev/null 2>&1; then
+		curl -fsSL "$SELF_UPDATE_URL" -o "$tmp_file"
+	elif command -v wget >/dev/null 2>&1; then
+		wget -q "$SELF_UPDATE_URL" -O "$tmp_file"
+	else
+		rm -f "$tmp_file"
+		error "curl 和 wget 均未安装，无法自动更新"
+		return 1
+	fi
+
+	if [ $? -ne 0 ] || [ ! -s "$tmp_file" ]; then
+		rm -f "$tmp_file"
+		error "下载最新脚本失败，请检查网络或 GitHub 访问"
+		return 1
+	fi
+
+	if ! grep -q '^#!/bin/bash' "$tmp_file"; then
+		rm -f "$tmp_file"
+		error "下载失败，已取消覆盖"
+		return 1
+	fi
+
+	if cp "$tmp_file" "$script_path"; then
+		chmod +x "$script_path" 2>/dev/null
+		rm -f "$tmp_file"
+		info "脚本已更新到最新版本"
+	else
+		rm -f "$tmp_file"
+		error "覆盖当前脚本失败，请检查文件权限：$script_path"
+		return 1
+	fi
 }
 
 function install_basics() {
@@ -2091,6 +2136,7 @@ function install_web_rsa_sign2n() {
 
 function usage() {
 	echo "usage: ./auto_deploy.sh [mode]"
+	echo "		self-update			自动更新脚本到最新版本"
 	echo "		base				基础配置"
 	echo "		docker				安装docker"
 	echo "		docker-compose			安装docker-compose"
@@ -2112,6 +2158,11 @@ function main() {
 	[[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]] && {
 		usage
 		return
+	}
+
+	[[ "$1" == "self-update" ]] && {
+		update_self
+		return $?
 	}
 
 	read -p "警告，该脚本可能会对您的系统进行某些更改和删除操作，继续运行吗？默认为：yes. Enter [yes/no]：" is_is
