@@ -1580,6 +1580,105 @@ function install_web_gtfobins() {
 	fi
 }
 
+function install_web_java-chains() {
+	if ! command -v docker &>/dev/null; then
+		info "Docker 未安装，开始安装..."
+		install_docker
+	else
+		info "Docker 已安装"
+	fi
+
+	local image_name="javachains/javachains:latest"
+	local container_name="java-chains"
+
+	if ! docker image inspect "$image_name" >/dev/null 2>&1; then
+		info "拉取 Docker 镜像 $image_name ..."
+		docker pull "$image_name"
+		if [ $? -ne 0 ]; then
+			error "镜像拉取失败"
+			return 1
+		fi
+	else
+		info "镜像 $image_name 已存在"
+	fi
+
+	if docker container inspect "$container_name" >/dev/null 2>&1; then
+		local port
+		port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "8011/tcp") 0).HostPort }}' "$container_name" 2>/dev/null)
+
+		if [[ "$(docker container inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)" == "true" ]]; then
+			info "容器 $container_name 已在运行，访问地址：http://$(hostname -I | awk '{print $1}'):${port}/"
+			info "如使用随机密码，可执行：docker logs $container_name | grep -E 'password'"
+			return 0
+		else
+			info "容器 $container_name 存在但未运行，正在启动..."
+			docker start "$container_name" >/dev/null
+			if [ $? -eq 0 ]; then
+				info "容器已启动，访问地址：http://$(hostname -I | awk '{print $1}'):${port}/"
+				info "如使用随机密码，可执行：docker logs $container_name | grep -E 'password'"
+				return 0
+			else
+				error "容器启动失败"
+				return 1
+			fi
+		fi
+	fi
+
+	read -p "[?] 是否启动容器？(y/n): " confirm
+	if [[ "$confirm" =~ ^[Yy]$ ]]; then
+		read -p "[?] 请输入 Web 端口（默认 8011）: " web_port
+		web_port=${web_port:-8011}
+
+		read -p "[?] 是否开启全部 exploit 模块端口？(y/n，默认 n): " expose_all
+		read -p "[?] 是否自定义 Web 登录密码？留空则随机生成: " chains_pass
+
+		local auth_env="-e CHAINS_AUTH=true"
+		local pass_env="-e CHAINS_PASS=${chains_pass}"
+
+		if [[ "$expose_all" =~ ^[Yy]$ ]]; then
+			info "启动容器，映射 Web 端口 $web_port，并开放 exploit 模块端口..."
+			docker run -d \
+				--name "$container_name" \
+				--restart=always \
+				-p "$web_port":8011 \
+				-p 58080:58080 \
+				-p 50389:50389 \
+				-p 50388:50388 \
+				-p 3308:3308 \
+				-p 13999:13999 \
+				-p 50000:50000 \
+				-p 11527:11527 \
+				$auth_env \
+				$pass_env \
+				"$image_name"
+		else
+			info "启动容器，仅映射 Web 端口 $web_port ..."
+			docker run -d \
+				--name "$container_name" \
+				--restart=always \
+				-p "$web_port":8011 \
+				$auth_env \
+				$pass_env \
+				"$image_name"
+		fi
+
+		if [ $? -eq 0 ]; then
+			info "容器已启动，访问地址：http://$(hostname -I | awk '{print $1}'):$web_port/"
+			if [ -z "$chains_pass" ]; then
+				info "当前使用随机密码，可执行以下命令查看："
+				info "docker logs $container_name | grep -E 'password'"
+			else
+				info "当前使用自定义密码登录"
+			fi
+		else
+			error "容器启动失败"
+			return 1
+		fi
+	else
+		warn "用户选择不启动容器"
+	fi
+}
+
 function install_web_c-jwt-cracker() {
 	if ! command -v docker &>/dev/null; then
 		info "Docker 未安装，开始安装..."
