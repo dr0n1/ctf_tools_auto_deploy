@@ -7,11 +7,10 @@
 
 1：基础功能（换网络源，允许 root ssh 登录等）  
 2：安装 docker / docker-compose  
-3：安装 golang  
-4：安装 java  
-5：安装 linux 下的部分 pwn 工具  
-6：安装 linux 下的部分 misc 工具和第三方脚本  
-7：安装 linux 下的部分 web 工具和第三方脚本
+3：安装 java/golang/python/ruby 等环境  
+4：安装 linux 下的部分 pwn 工具  
+5：安装 linux 下的部分 misc 工具和第三方脚本  
+6：安装 linux 下的部分 web 工具和第三方脚本
 
 具体如下，标注**docker**的以容器的形式部署，标注**file**的以文件的形式保存在目录中，其他默认以**命令**的形式安装
 
@@ -75,6 +74,7 @@ php_filter_chain_generator(file)
 Gopherus
 c-jwt-cracker(docker)
 rsa_sign2n(file)
+java-chains(docker)
 ```
 
 # 支持的系统
