@@ -78,12 +78,6 @@ jobs:
 
           tar -czf "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.tar.gz" -C dist "ctf_tools_auto_deploy-${{ steps.version.outputs.version }}"
           (cd dist && zip -r "ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.zip" "ctf_tools_auto_deploy-${{ steps.version.outputs.version }}")
-          sha256sum \
-            "dist/auto_deploy.sh" \
-            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.tar.gz" \
-            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.zip" \
-            > "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.sha256"
-
       - name: Create release
         if: steps.release_check.outputs.exists != 'true'
         env:
@@ -96,6 +90,5 @@ jobs:
             "dist/auto_deploy.sh" \
             "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.tar.gz" \
             "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.zip" \
-            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.sha256" \
             --title "${{ steps.version.outputs.version }}" \
             --notes "Automated release for auto_deploy.sh version ${{ steps.version.outputs.version }}."
