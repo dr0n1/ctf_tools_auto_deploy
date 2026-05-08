@@ -85,17 +85,11 @@ function install_basics() {
 	if ! grep -q "mirrors.ustc.edu.cn" /etc/apt/sources.list; then
 		info "开始获取对应网络源(USTC)"
 
-		if ! command -v curl >/dev/null 2>&1; then
-			info "安装 curl..."
-			apt_update_once
-			apt-get install -y curl
-		fi
-
 		ubuntu_lsb=$(lsb_release -c -s)
 		src_url="https://mirrors.ustc.edu.cn/repogen/conf/ubuntu-https-4-${ubuntu_lsb}"
 		cp /etc/apt/sources.list /etc/apt/sources.list.backup
 
-		if curl -fsSL "$src_url" -o /etc/apt/sources.list; then
+		if wget -qO /etc/apt/sources.list "$src_url"; then
 			info "USTC 源配置成功"
 		else
 			error "获取 USTC 源失败，检查网络或 codename: $ubuntu_lsb"
