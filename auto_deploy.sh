@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: dr0n1
-# Version：3.55.0
+# Version：3.55.1
 # Email: 1930774374@qq.com
 
 export DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-noninteractive}
@@ -49,13 +49,11 @@ function update_self() {
 	fi
 
 	info "从 ${SELF_UPDATE_URL} 下载最新脚本"
-	if command -v curl >/dev/null 2>&1; then
-		curl -fsSL "$SELF_UPDATE_URL" -o "$tmp_file"
-	elif command -v wget >/dev/null 2>&1; then
+	if command -v wget >/dev/null 2>&1; then
 		wget -q "$SELF_UPDATE_URL" -O "$tmp_file"
 	else
 		rm -f "$tmp_file"
-		error "curl 和 wget 均未安装，无法自动更新"
+		error "wget 未安装，无法自动更新"
 		return 1
 	fi
 
