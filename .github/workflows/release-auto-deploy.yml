@@ -1,0 +1,101 @@
+name: Release auto_deploy.sh
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - auto_deploy.sh
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from auto_deploy.sh
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(sed -nE 's/^# Version[^0-9]*([0-9]+(\.[0-9]+){1,3}).*/\1/p' auto_deploy.sh | head -n 1)"
+          if [[ -z "${version}" ]]; then
+            echo "Failed to read version from auto_deploy.sh"
+            exit 1
+          fi
+
+          tag="${version}"
+          package_dir="dist/ctf_tools_auto_deploy-${version}"
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "package_dir=${package_dir}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check whether release version already exists
+        id: release_check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+            echo "Release ${{ steps.version.outputs.tag }} already exists. Skip packaging and publishing."
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Build release package
+        if: steps.release_check.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "${{ steps.version.outputs.package_dir }}"
+          cp auto_deploy.sh "${{ steps.version.outputs.package_dir }}/"
+          cp auto_deploy.sh "dist/auto_deploy.sh"
+
+          if [[ -f README.md ]]; then
+            cp README.md "${{ steps.version.outputs.package_dir }}/"
+          fi
+
+          if [[ -f LICENSE ]]; then
+            cp LICENSE "${{ steps.version.outputs.package_dir }}/"
+          fi
+
+          chmod +x "${{ steps.version.outputs.package_dir }}/auto_deploy.sh"
+
+          tar -czf "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.tar.gz" -C dist "ctf_tools_auto_deploy-${{ steps.version.outputs.version }}"
+          (cd dist && zip -r "ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.zip" "ctf_tools_auto_deploy-${{ steps.version.outputs.version }}")
+          sha256sum \
+            "dist/auto_deploy.sh" \
+            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.tar.gz" \
+            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.zip" \
+            > "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.sha256"
+
+      - name: Create release
+        if: steps.release_check.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "dist/auto_deploy.sh" \
+            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.tar.gz" \
+            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.zip" \
+            "dist/ctf_tools_auto_deploy-${{ steps.version.outputs.version }}.sha256" \
+            --title "${{ steps.version.outputs.version }}" \
+            --notes "Automated release for auto_deploy.sh version ${{ steps.version.outputs.version }}."

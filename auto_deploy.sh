@@ -1,5 +1,6 @@
 #!/bin/bash
 # Author: dr0n1
+# Version：3.55.0
 # Email: 1930774374@qq.com
 
 export DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-noninteractive}
